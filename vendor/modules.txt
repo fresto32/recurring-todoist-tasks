@@ -1,0 +1,2 @@
+# github.com/evilmartians/lefthook v0.7.7
+## explicit
