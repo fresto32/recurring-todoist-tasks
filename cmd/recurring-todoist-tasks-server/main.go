@@ -26,6 +26,7 @@ func main() {
 
 	labels := make(chan []api.Label)
 	go api.GetLabels(apiToken, labels)
+
 	for l := range labels {
 		log.Printf("%v\n", l)
 	}
