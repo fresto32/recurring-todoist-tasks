@@ -1,45 +1,31 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
-	"net/http"
+
+	"github.com/fresto32/recurring-todoist-tasks/pkg/api"
 )
 
 func main() {
 	apiToken := "some token"
 
-	projects := make(chan string)
-	go printProjects(apiToken, projects)
+	projects := make(chan []api.Project)
+	go api.GetProjects(apiToken, projects)
 
 	for p := range projects {
-		log.Printf(p)
-	}
-}
-
-func printProjects(apiToken string, projects chan string) {
-	client := http.Client{}
-	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/tasks", nil)
-	if err != nil {
-		panic(err)
+		log.Printf("%v\n", p)
 	}
 
-	req.Header = http.Header{
-		"Authorization": []string{"Bearer " + apiToken},
+	tasks := make(chan []api.Task)
+	go api.GetTasks(apiToken, tasks)
+
+	for t := range tasks {
+		log.Printf("%v\n", t)
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		//Handle Error
+	labels := make(chan []api.Label)
+	go api.GetLabels(apiToken, labels)
+	for l := range labels {
+		log.Printf("%v\n", l)
 	}
-
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	//Convert the body to type string
-	sb := string(body)
-
-	projects <- sb
 }
