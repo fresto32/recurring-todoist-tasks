@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type Project struct {
+type ProjectJson struct {
 	Id            int    `json:"id"`
 	Parent        int    `json:"parent"`
 	Parent_id     int    `json:"parent_id"`
@@ -21,7 +21,7 @@ type Project struct {
 	Url           string `json:"url"`
 }
 
-func GetProjects(apiToken string, projects chan []Project) {
+func GetAllProjects(apiToken string, projects chan []ProjectJson) {
 	client := http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/projects", nil)
@@ -44,7 +44,7 @@ func GetProjects(apiToken string, projects chan []Project) {
 		panic(err)
 	}
 
-	var receivedProjects []Project
+	var receivedProjects []ProjectJson
 
 	err = json.Unmarshal([]byte(body), &receivedProjects)
 	if err != nil {
@@ -54,4 +54,27 @@ func GetProjects(apiToken string, projects chan []Project) {
 	projects <- receivedProjects
 
 	close(projects)
+}
+
+func GetProjectOfName(apiToken string, name string) chan ProjectJson {
+	project := make(chan ProjectJson)
+
+	go func() {
+		allProjectsChannel := make(chan []ProjectJson)
+		go GetAllProjects(apiToken, allProjectsChannel)
+
+		allProjects := <-allProjectsChannel
+
+		for _, v := range allProjects {
+			if v.Name == name {
+				project <- v
+				close(project)
+				return
+			}
+		}
+
+		close(project)
+	}()
+
+	return project
 }

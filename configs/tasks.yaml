@@ -1,0 +1,9 @@
+recurring_tasks:
+  - project: 'Personal Upkeep'
+    content: 'Testing my api'
+    description: 'Some description'
+    labels:
+      - next
+      - at_lockheed
+    priority: 4
+    due_string: "today"

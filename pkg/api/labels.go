@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type Label struct {
+type LabelJson struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
 	Order    int    `json:"order"`
@@ -14,7 +14,7 @@ type Label struct {
 	Favorite bool   `json:"favorite"`
 }
 
-func GetLabels(apiToken string, labels chan []Label) {
+func GetAllLabels(apiToken string, labels chan []LabelJson) {
 	client := http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/labels", nil)
@@ -37,7 +37,7 @@ func GetLabels(apiToken string, labels chan []Label) {
 		panic(err)
 	}
 
-	var receivedLabels []Label
+	var receivedLabels []LabelJson
 
 	err = json.Unmarshal([]byte(body), &receivedLabels)
 	if err != nil {
@@ -47,4 +47,26 @@ func GetLabels(apiToken string, labels chan []Label) {
 	labels <- receivedLabels
 
 	close(labels)
+}
+
+func GetLabelOfName(apiToken string, name string) chan LabelJson {
+	label := make(chan LabelJson)
+
+	go func() {
+		allLabelsChannel := make(chan []LabelJson)
+		go GetAllLabels(apiToken, allLabelsChannel)
+
+		allLabels := <-allLabelsChannel
+
+		for _, v := range allLabels {
+			if v.Name == name {
+				label <- v
+				close(label)
+				return
+			}
+		}
+		close(label)
+	}()
+
+	return label
 }

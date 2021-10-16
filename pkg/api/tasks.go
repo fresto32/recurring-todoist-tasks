@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type Task struct {
+type TaskJson struct {
 	Id            int    `json:"id"`
 	Assigner      int    `json:"assigner"`
 	Project_id    int    `json:"project_id"`
@@ -28,7 +28,7 @@ type Task struct {
 	} `json:"due"`
 }
 
-func GetTasks(apiToken string, tasks chan []Task) {
+func GetAllTasks(apiToken string, tasks chan []TaskJson) {
 	client := http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/tasks", nil)
@@ -51,7 +51,7 @@ func GetTasks(apiToken string, tasks chan []Task) {
 		panic(err)
 	}
 
-	var receivedTasks []Task
+	var receivedTasks []TaskJson
 
 	err = json.Unmarshal([]byte(body), &receivedTasks)
 	if err != nil {
