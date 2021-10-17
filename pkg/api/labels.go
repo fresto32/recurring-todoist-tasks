@@ -14,51 +14,60 @@ type LabelJson struct {
 	Favorite bool   `json:"favorite"`
 }
 
-func GetAllLabels(apiToken string, labels chan []LabelJson) {
-	client := http.Client{}
+var allLabels []LabelJson
 
-	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/labels", nil)
-	if err != nil {
-		panic(err)
-	}
+func AllLabels(apiToken string) chan []LabelJson {
+	labels := make(chan []LabelJson)
 
-	req.Header = http.Header{
-		"Authorization": []string{"Bearer " + apiToken},
-	}
+	go func() {
+		if allLabels != nil {
+			labels <- allLabels
+			return
+		}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		//Handle Error
-	}
+		client := http.Client{}
 
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
+		req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/labels", nil)
+		if err != nil {
+			panic(err)
+		}
 
-	var receivedLabels []LabelJson
+		req.Header = http.Header{
+			"Authorization": []string{"Bearer " + apiToken},
+		}
 
-	err = json.Unmarshal([]byte(body), &receivedLabels)
-	if err != nil {
-		panic(err)
-	}
+		resp, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
 
-	labels <- receivedLabels
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
 
-	close(labels)
+		var receivedLabels []LabelJson
+
+		err = json.Unmarshal([]byte(body), &receivedLabels)
+		if err != nil {
+			panic(err)
+		}
+
+		labels <- receivedLabels
+
+		allLabels = receivedLabels
+
+		close(labels)
+	}()
+
+	return labels
 }
 
-func GetLabelOfName(apiToken string, name string) chan LabelJson {
+func FindLabelByName(apiToken string, name string) chan LabelJson {
 	label := make(chan LabelJson)
 
 	go func() {
-		allLabelsChannel := make(chan []LabelJson)
-		go GetAllLabels(apiToken, allLabelsChannel)
-
-		allLabels := <-allLabelsChannel
-
-		for _, v := range allLabels {
+		for _, v := range <-AllLabels(apiToken) {
 			if v.Name == name {
 				label <- v
 				close(label)

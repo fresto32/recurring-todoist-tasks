@@ -21,49 +21,62 @@ type ProjectJson struct {
 	Url           string `json:"url"`
 }
 
-func GetAllProjects(apiToken string, projects chan []ProjectJson) {
-	client := http.Client{}
+var allProjects []ProjectJson
 
-	req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/projects", nil)
-	if err != nil {
-		panic(err)
-	}
+func AllProjects(apiToken string) chan []ProjectJson {
 
-	req.Header = http.Header{
-		"Authorization": []string{"Bearer " + apiToken},
-	}
+	projects := make(chan []ProjectJson)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		//Handle Error
-	}
+	go func() {
+		if allProjects != nil {
+			projects <- allProjects
+			return
+		}
 
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
+		client := http.Client{}
 
-	var receivedProjects []ProjectJson
+		req, err := http.NewRequest("GET", "https://api.todoist.com/rest/v1/projects", nil)
+		if err != nil {
+			panic(err)
+		}
 
-	err = json.Unmarshal([]byte(body), &receivedProjects)
-	if err != nil {
-		panic(err)
-	}
+		req.Header = http.Header{
+			"Authorization": []string{"Bearer " + apiToken},
+		}
 
-	projects <- receivedProjects
+		resp, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
 
-	close(projects)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		var receivedProjects []ProjectJson
+
+		err = json.Unmarshal([]byte(body), &receivedProjects)
+		if err != nil {
+			panic(err)
+		}
+
+		projects <- receivedProjects
+
+		allProjects = receivedProjects
+
+		close(projects)
+	}()
+
+	return projects
 }
 
-func GetProjectOfName(apiToken string, name string) chan ProjectJson {
+func FindProjectByName(apiToken string, name string) chan ProjectJson {
 	project := make(chan ProjectJson)
 
 	go func() {
-		allProjectsChannel := make(chan []ProjectJson)
-		go GetAllProjects(apiToken, allProjectsChannel)
 
-		allProjects := <-allProjectsChannel
+		allProjects := <-AllProjects(apiToken)
 
 		for _, v := range allProjects {
 			if v.Name == name {

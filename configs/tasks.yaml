@@ -7,3 +7,5 @@ recurring_tasks:
       - at_lockheed
     priority: 4
     due_string: "today"
+    create:
+      once_off: true
